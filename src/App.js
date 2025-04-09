@@ -13,7 +13,7 @@ import Login from './features/auth/components/login';
 import Register from './features/auth/components/register';
 import AccountActivation from './features/auth/components/AccountActivation';
 import PasswordReset from './features/auth/components/PasswordReset';
-import PasswordResetConfirm from './features/auth/components/PasswordResetConfirm';
+import ResetPasswordConfirm from './features/auth/components/ResetPasswordConfirm';
 import Logout from './features/auth/components/logout';
 import Home from './features/home/components/Home';
 
@@ -42,7 +42,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/activate/:uidb64/:token" element={<AccountActivation />} />
             <Route path="/password-reset" element={<PasswordReset />} />
-            <Route path="/password-reset/:uidb64/:token" element={<PasswordResetConfirm />} />
+            <Route path="/password-reset/:uidb64/:token" element={<ResetPasswordConfirm />} />
             <Route path="/logout" element={<Logout />} />
             
             {/* Protected Routes */}
