@@ -1,5 +1,5 @@
 services:
-  # Frontend service only
+  ## Frontend service only
   - type: web
     name: ocr-software-frontend
     env: static
