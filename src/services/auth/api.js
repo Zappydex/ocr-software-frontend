@@ -1,3 +1,4 @@
+## service/auth/api.js
 
 import api from '../apiConfig';
 
@@ -12,61 +13,15 @@ export const registerUser = async (userData) => {
   }
 };
 
-export const registerWithGoogle = async (credential) => {
-  try {
-    const response = await api.post('/accounts/google-login/', { token: credential });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-    }
-    return response;
-  } catch (error) {
-    console.error('Google registration error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
 export const loginUser = async (credentials) => {
   try {
     const response = await api.post('/accounts/login/', credentials);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
     return response.data;
   } catch (error) {
     console.error('Login error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-export const loginWithGoogle = async (credential) => {
-  try {
-    const response = await api.post('/accounts/google-login/', { token: credential });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-    }
-    return response;
-  } catch (error) {
-    console.error('Google login error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-export const verifyOTP = async (otpData) => {
-  try {
-    const response = await api.post('/accounts/verify-otp/', otpData);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-    }
-    return response.data;
-  } catch (error) {
-    console.error('OTP verification error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-export const resendOTP = async (email) => {
-  try {
-    const response = await api.post('/accounts/resend-otp/', email);
-    return response.data;
-  } catch (error) {
-    console.error('Resend OTP error:', error.response?.data || error.message);
     throw error;
   }
 };
@@ -82,9 +37,44 @@ export const logoutUser = async () => {
   }
 };
 
+// Google Authentication
+export const getGoogleAuthUrl = async () => {
+  try {
+    const response = await api.get('/accounts/google/login/');
+    return response.data;
+  } catch (error) {
+    console.error('Google auth URL error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const loginWithGoogle = async (idToken) => {
+  try {
+    const response = await api.post('/accounts/google/login/', { token: idToken });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Google login error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const checkGoogleAuthStatus = async () => {
+  try {
+    const response = await api.get('/accounts/google/auth/');
+    return response.data;
+  } catch (error) {
+    console.error('Google auth status error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Password Reset
 export const requestPasswordReset = async (email) => {
   try {
-    const response = await api.post('/accounts/request-password-reset/', email);
+    const response = await api.post('/accounts/request-reset-email/', { email });
     return response.data;
   } catch (error) {
     console.error('Password reset request error:', error.response?.data || error.message);
@@ -92,9 +82,19 @@ export const requestPasswordReset = async (email) => {
   }
 };
 
-export const resetPassword = async (uidb64, token, passwords) => {
+export const checkPasswordResetToken = async (uidb64, token) => {
   try {
-    const response = await api.post(`/accounts/reset-password/${uidb64}/${token}/`, passwords);
+    const response = await api.get(`/accounts/password-reset/${uidb64}/${token}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Password reset token check error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const resetPassword = async (passwordData) => {
+  try {
+    const response = await api.patch('/accounts/password-reset-complete/', passwordData);
     return response.data;
   } catch (error) {
     console.error('Password reset error:', error.response?.data || error.message);
@@ -102,6 +102,42 @@ export const resetPassword = async (uidb64, token, passwords) => {
   }
 };
 
+// OTP Verification
+export const verifyOTP = async (otpData) => {
+  try {
+    const response = await api.post('/accounts/verify-otp/', otpData);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response.data;
+  } catch (error) {
+    console.error('OTP verification error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const resendOTP = async (email) => {
+  try {
+    const response = await api.post('/accounts/resend-otp/', { email });
+    return response.data;
+  } catch (error) {
+    console.error('Resend OTP error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Account Activation
+export const resendActivationEmail = async (email) => {
+  try {
+    const response = await api.post('/accounts/resend-activation/', { email });
+    return response.data;
+  } catch (error) {
+    console.error('Resend activation error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// User Profile
 export const getUserProfile = async () => {
   try {
     const response = await api.get('/accounts/profile/');
@@ -121,34 +157,3 @@ export const updateUserProfile = async (profileData) => {
     throw error;
   }
 };
-
-export const checkActivationToken = async (uidb64, token) => {
-  try {
-    const response = await api.get(`/accounts/activate/${uidb64}/${token}/`);
-    return response.data;
-  } catch (error) {
-    console.error('Token check error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-export const confirmAccountActivation = async (uidb64, token) => {
-  try {
-    const response = await api.post(`/accounts/activate/${uidb64}/${token}/`);
-    return response.data;
-  } catch (error) {
-    console.error('Account activation error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-export const resendActivationEmail = async (email) => {
-  try {
-    const response = await api.post('/accounts/resend-activation/', email);
-    return response.data;
-  } catch (error) {
-    console.error('Resend activation error:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
