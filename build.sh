@@ -34,10 +34,22 @@ npm ci || npm install
 echo "Checking package.json configuration:"
 grep -E '"homepage"|"name"|"version"' package.json || echo "No homepage setting found"
 
+# Add homepage setting if missing
+if ! grep -q '"homepage"' package.json; then
+  echo "Adding homepage setting to package.json..."
+  sed -i 's/"private": true,/"private": true,\n  "homepage": ".",/g' package.json
+fi
+
+# Increase Node memory limit and disable CI mode to show all errors
+export NODE_OPTIONS="--max-old-space-size=4096"
+export CI=false
+export GENERATE_SOURCEMAP=false
+
 # Create production build with explicit environment variables
 echo "Creating production build..."
 REACT_APP_API_URL=${REACT_APP_API_URL:-"https://ocr-software-62gw.onrender.com"} \
 REACT_APP_ENV=${REACT_APP_ENV:-"production"} \
+REACT_APP_DEBUG=true \
 npm run build
 
 # Ensure the build directory exists
@@ -57,6 +69,16 @@ cat build/index.html | grep -E 'root|script' || echo "Critical content missing f
 # Check for main JS bundle
 echo "JavaScript bundles:"
 ls -la build/static/js/
+
+# Check JS bundle content
+echo "Checking JS bundle size:"
+for file in build/static/js/*.js; do
+  echo "$file: $(du -h $file | cut -f1)"
+  if [ $(stat -c%s "$file") -eq 0 ]; then
+    echo "ERROR: Empty JavaScript bundle detected!"
+    echo "Build is failing silently. Check for syntax errors in your React code."
+  fi
+done
 
 # Check build size
 echo "Build size: $(du -sh build | cut -f1)"
