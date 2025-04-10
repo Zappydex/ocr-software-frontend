@@ -146,6 +146,16 @@ export const getUserProfile = async () => {
   }
 };
 
+export const checkActivationToken = async (uidb64, token) => {
+  try {
+    const response = await api.get(`/accounts/activate/${uidb64}/${token}/`);
+    return response.data;
+  } catch (error) {
+    console.error('Activation token check error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
 export const updateUserProfile = async (profileData) => {
   try {
     const response = await api.put('/accounts/profile/', profileData);
