@@ -10,7 +10,7 @@ const Logout = () => {
   useEffect(() => {
     const performLogout = async () => {
       try {
-        await logoutUser();
+        await logoutApi();
         logout();
         navigate('/');
       } catch (error) {
@@ -29,3 +29,4 @@ const Logout = () => {
 };
 
 export default Logout;
+ 
