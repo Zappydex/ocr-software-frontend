@@ -1,5 +1,3 @@
-## service/auth/api.js
-
 import api from '../apiConfig';
 
 // Authentication services
