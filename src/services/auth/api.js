@@ -46,6 +46,20 @@ export const getGoogleAuthUrl = async () => {
   }
 };
 
+export const registerWithGoogle = async (idToken) => {
+  try {
+    const response = await api.post('/accounts/google/register/', { token: idToken });
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Google registration error:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
 export const loginWithGoogle = async (idToken) => {
   try {
     const response = await api.post('/accounts/google/login/', { token: idToken });
