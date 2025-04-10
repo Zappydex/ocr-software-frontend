@@ -1,7 +1,7 @@
 
 // src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserProfile, logout as logoutApi } from '../services/auth/api';
+import { getUserProfile, logoutUser as logoutApi } from '../services/auth/api';
 
 const AuthContext = createContext(null);
 
