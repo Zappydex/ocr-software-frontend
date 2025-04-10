@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { GoogleLogin } from '@react-oauth/google';
 import { registerUser, registerWithGoogle } from '../../../services/auth/api';
-import Login from './Login';
+import Login from './login';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
