@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Create axios instance with base URL from environment variable
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://ocr-software-62gw.onrender.com';
 
 // Create axios instance
 const api = axios.create({

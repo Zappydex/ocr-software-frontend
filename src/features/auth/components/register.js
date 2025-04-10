@@ -48,6 +48,18 @@ const Input = styled.input`
   }
 `;
 
+const Select = styled.select`
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 2px solid #cdcdcd;
+  border-radius: 12px;
+  font-size: 14px;
+  &:focus {
+    outline: none;
+    border-color: #0056b3;
+  }
+`;
+
 const Button = styled.button`
   padding: 10px;
   background-color: #0056b3;
@@ -174,28 +186,65 @@ const FormContainer = styled.div`
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 `;
 
+const StepTwoModal = styled(ModalBackground)`
+  z-index: 1002;
+`;
+
+const StepTwoContainer = styled(ModalContent)`
+  width: 300px;
+`;
+
+const BackButton = styled(Button)`
+  background-color: white;
+  color: #0056b3;
+  border: 2px solid #0056b3;
+`;
+
 const Register = ({ isOpen, onClose }) => {
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password1, setPassword1] = useState('');
-  const [password2, setPassword2] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    username: '',
+    password1: '',
+    password2: '',
+    organization: '',
+    role: 'user'
+  });
+  const [step, setStep] = useState(1);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const handleContinue = (e) => {
     e.preventDefault();
-    if (password1 !== password2) {
+    if (formData.password1 !== formData.password2) {
       toast.error("Passwords don't match");
       return;
     }
+    setStep(2);
+  };
+
+  const handleBack = () => {
+    setStep(1);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setIsLoading(true);
     try {
-      await registerUser({ email, username, password1, password2 });
+      await registerUser(formData);
       toast.success('Registration successful! Please check your email to activate your account.');
       setTimeout(() => {
         setIsLoading(false);
         if (onClose) onClose();
+        setStep(1);
       }, 1000);
     } catch (error) {
       console.error('Registration failed:', error);
@@ -224,62 +273,100 @@ const Register = ({ isOpen, onClose }) => {
   const handleLoginClick = (e) => {
     e.preventDefault();
     setIsLoginOpen(true);
+    setStep(1);
   };
 
   const handleCloseLogin = () => {
     setIsLoginOpen(false);
   };
 
-  // For direct rendering (not as a modal)
   return (
-    <Container>
-      <FormContainer>
-        <Form onSubmit={handleSubmit}>
-          <Input 
-            type="email" 
-            placeholder="Email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
-          <Input 
-            type="text" 
-            placeholder="Username" 
-            value={username} 
-            onChange={(e) => setUsername(e.target.value)} 
-            required 
-          />
-          <Input 
-            type="password" 
-            placeholder="Create a password" 
-            value={password1} 
-            onChange={(e) => setPassword1(e.target.value)} 
-            required 
-          />
-          <Input 
-            type="password" 
-            placeholder="Confirm password" 
-            value={password2} 
-            onChange={(e) => setPassword2(e.target.value)} 
-            required 
-          />
-          <Button type="submit">Continue</Button>
-        </Form>
-        <Divider><span>OR</span></Divider>
-        <GoogleLogin
-          onSuccess={handleGoogleRegister}
-          onError={() => toast.error('Google Registration Failed')}
-          render={renderProps => (
-            <GoogleButton onClick={renderProps.onClick} disabled={renderProps.disabled}>
-              Continue with Google
-            </GoogleButton>
-          )}
-        />
-        <Text>
-          Have an account? <Link onClick={handleLoginClick}>Log in</Link>
-        </Text>
-      </FormContainer>
+    <>
+      {!isLoginOpen && (
+        <Container>
+          <FormContainer>
+            {step === 1 && (
+              <>
+                <Form onSubmit={handleContinue}>
+                  <Input 
+                    type="email" 
+                    name="email"
+                    placeholder="Email" 
+                    value={formData.email} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <Input 
+                    type="text" 
+                    name="username"
+                    placeholder="Username" 
+                    value={formData.username} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <Input 
+                    type="password" 
+                    name="password1"
+                    placeholder="Create a password" 
+                    value={formData.password1} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <Input 
+                    type="password" 
+                    name="password2"
+                    placeholder="Confirm password" 
+                    value={formData.password2} 
+                    onChange={handleChange} 
+                    required 
+                  />
+                  <Button type="submit">Continue</Button>
+                </Form>
+                <Divider><span>OR</span></Divider>
+                <GoogleLogin
+                  onSuccess={handleGoogleRegister}
+                  onError={() => toast.error('Google Registration Failed')}
+                />
+                <Text>
+                  Have an account? <Link onClick={handleLoginClick}>Log in</Link>
+                </Text>
+              </>
+            )}
+          </FormContainer>
+        </Container>
+      )}
+
+      {step === 2 && (
+        <StepTwoModal>
+          <StepTwoContainer>
+            <Form onSubmit={handleSubmit}>
+              <Input 
+                type="text" 
+                name="organization"
+                placeholder="Organization" 
+                value={formData.organization} 
+                onChange={handleChange} 
+                required 
+              />
+              <Select 
+                name="role"
+                value={formData.role} 
+                onChange={handleChange} 
+                required
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+                <option value="manager">Manager</option>
+              </Select>
+              <Button type="submit">Register</Button>
+              <BackButton type="button" onClick={handleBack}>Back</BackButton>
+            </Form>
+          </StepTwoContainer>
+        </StepTwoModal>
+      )}
+
       {isLoginOpen && <Login isOpen={isLoginOpen} onClose={handleCloseLogin} />}
+      
       {isLoading && (
         <LoadingOverlay>
           <SlidingSquares>
@@ -290,7 +377,7 @@ const Register = ({ isOpen, onClose }) => {
           </SlidingSquares>
         </LoadingOverlay>
       )}
-    </Container>
+    </>
   );
 };
 
