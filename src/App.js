@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import GoogleAuthCallback from './features/auth/components/GoogleAuthCallback';
+import OTPVerification from './features/auth/components/OTPVerification';
 
 // Context
 import { AuthProvider } from './context/AuthContext';
@@ -17,6 +18,7 @@ import PasswordReset from './features/auth/components/PasswordReset';
 import ResetPasswordConfirm from './features/auth/components/ResetPasswordConfirm';
 import Logout from './features/auth/components/logout';
 import Home from './features/home/components/Home';
+import Workspace from './features/workspace/components/Workspace';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -43,7 +45,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/activate/:uidb64/:token/:user_id" element={<AccountActivation />} />
             <Route path="/auth/google" element={<GoogleAuthCallback />} />
-
+            <Route path="/verify-otp" element={<OTPVerification />} />
             <Route path="/password-reset" element={<PasswordReset />} />
             <Route path="/password-reset/:uidb64/:token" element={<ResetPasswordConfirm />} />
             <Route path="/api/accounts/password-reset/:uidb64/:token" element={<ResetPasswordConfirm />} />
@@ -52,8 +54,14 @@ function App() {
             {/* Protected Routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                {/* Your dashboard component will go here */}
-                <div>Dashboard (Protected)</div>
+                <Navigate to="/workspace" />
+              </ProtectedRoute>
+            } />
+            
+            {/* Workspace Route */}
+            <Route path="/workspace" element={
+              <ProtectedRoute>
+                <Workspace />
               </ProtectedRoute>
             } />
             

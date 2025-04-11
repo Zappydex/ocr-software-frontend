@@ -105,7 +105,6 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
   }
 };
 
-
 export const loginWithGoogle = async (idToken) => {
   try {
     const response = await api.post('/api/accounts/google/login/', { token: idToken });

@@ -1,8 +1,9 @@
+// src/features/auth/components/login.js
 import React, { useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { GoogleLogin } from '@react-oauth/google';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { loginUser, loginWithGoogle, verifyOTP, resendOTP } from '../../../services/auth/api';
+import { loginUser, loginWithGoogle } from '../../../services/auth/api';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -108,14 +109,6 @@ const GoogleButton = styled(Button)`
   }
 `;
 
-const ResendLink = styled.span`
-  color: #0056b3;
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: 12px;
-  margin-top: 8px;
-`;
-
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -159,8 +152,7 @@ const SlidingSquares = styled.div`
 `;
 
 const Login = ({ isOpen, onClose }) => {
-  const [formData, setFormData] = useState({ email: '', password: '', otp: '' });
-  const [step, setStep] = useState('login');
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -179,58 +171,25 @@ const Login = ({ isOpen, onClose }) => {
         throw new Error('Email and password are required');
       }
       const response = await loginUser({ email, password });
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        setStep('otp');
-      }, 1000);
+      
+      // Store email in sessionStorage for OTP component
+      sessionStorage.setItem('pendingAuthEmail', email);
+      sessionStorage.setItem('pendingAuthType', 'regular');
+      
+      setIsLoading(false);
+      
+      // Navigate to OTP verification page
+      navigate('/verify-otp', { 
+        state: { 
+          email, 
+          authType: 'regular',
+          redirectPath: '/workspace'
+        } 
+      });
+      
       toast.success('OTP sent to your email and phone (if available)');
-      sessionStorage.setItem('tempTokens', JSON.stringify(response.tokens));
-      sessionStorage.setItem('tempRedirect', response.redirect);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed. Please try again.');
-      setIsLoading(false);
-    }
-  }; 
-  
-  const handleOTPVerification = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    try {
-      const { otp } = formData;
-      if (!otp) {
-        throw new Error('OTP is required');
-      }
-      const response = await verifyOTP({ otp });
-      localStorage.setItem('token', response.token);
-      setIsLoading(true);
-      setTimeout(() => {
-        setIsLoading(false);
-        login(response);
-        if (onClose) onClose();
-        navigate('/profile-home');
-      }, 1000);
-      toast.success('Login successful!');
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'OTP verification failed. Please try again.';
-      toast.error(errorMessage);
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    setIsLoading(true);
-    try {
-      const { email } = formData;
-      if (!email) {
-        throw new Error('Email is required to resend OTP');
-      }
-      await resendOTP({ email });
-      toast.success('New OTP sent successfully');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to resend OTP. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -239,13 +198,44 @@ const Login = ({ isOpen, onClose }) => {
     setIsLoading(true);
     try {
       const response = await loginWithGoogle(credentialResponse.credential);
-      setTimeout(() => {
+      
+      // Check if OTP is required
+      if (response.requires_otp || response.message?.includes('OTP sent')) {
+        // Store email for OTP verification
+        const email = response.email;
+        sessionStorage.setItem('pendingAuthEmail', email);
+        sessionStorage.setItem('pendingAuthType', 'google');
+        
         setIsLoading(false);
-        login(response);
-        if (onClose) onClose();
-        navigate('/dashboard');
-      }, 1000);
-      toast.success('Google login successful!');
+        
+        // Navigate to OTP verification page
+        navigate('/verify-otp', { 
+          state: { 
+            email, 
+            authType: 'google',
+            redirectPath: '/workspace'
+          } 
+        });
+        
+        toast.success('OTP sent to your email and phone (if available)');
+      } else if (response.token) {
+        // Direct login if token is provided
+        localStorage.setItem('token', response.token);
+        setTimeout(() => {
+          setIsLoading(false);
+          login(response);
+          if (onClose) onClose();
+          navigate('/workspace');
+        }, 1000);
+        toast.success('Google login successful!');
+      } else {
+        // Handle other cases (like needing additional registration info)
+        toast.info('Additional verification required');
+        navigate('/auth/google', { 
+          state: { idToken: credentialResponse.credential } 
+        });
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('Google login error:', error);
       toast.error('Google login failed. Please try again.');
@@ -268,45 +258,28 @@ const Login = ({ isOpen, onClose }) => {
   return (
     <Container>
       <FormContainer>
-        {step === 'login' ? (
-          <Form onSubmit={handleSubmit}>
-            <Input 
-              type="email" 
-              name="email"
-              placeholder="Email" 
-              value={formData.email} 
-              onChange={handleChange} 
-              required 
-            />
-            <Input 
-              type="password" 
-              name="password"
-              placeholder="Password" 
-              value={formData.password} 
-              onChange={handleChange} 
-              required 
-            />
-            <StyledLink onClick={handleForgotPassword}>Forgot your password?</StyledLink>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Logging in...' : 'Log in'}
-            </Button>
-          </Form>
-        ) : (
-          <Form onSubmit={handleOTPVerification}>
-            <Input 
-              type="text" 
-              name="otp"
-              placeholder="Enter OTP" 
-              value={formData.otp} 
-              onChange={handleChange} 
-              required 
-            />
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Verifying...' : 'Verify OTP'}
-            </Button>
-            <ResendLink onClick={handleResendOTP} disabled={isLoading}>Resend OTP</ResendLink>
-          </Form>
-        )}
+        <Form onSubmit={handleSubmit}>
+          <Input 
+            type="email" 
+            name="email"
+            placeholder="Email" 
+            value={formData.email} 
+            onChange={handleChange} 
+            required 
+          />
+          <Input 
+            type="password" 
+            name="password"
+            placeholder="Password" 
+            value={formData.password} 
+            onChange={handleChange} 
+            required 
+          />
+          <StyledLink onClick={handleForgotPassword}>Forgot your password?</StyledLink>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Logging in...' : 'Log in'}
+          </Button>
+        </Form>
         <Divider><span>OR</span></Divider>
         <GoogleLogin
           onSuccess={handleGoogleLogin}

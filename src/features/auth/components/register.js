@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { GoogleLogin } from '@react-oauth/google';
-import { registerUser, registerWithGoogle } from '../../../services/auth/api';
+import { registerUser } from '../../../services/auth/api';
 import Login from './login';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import SocialLogin from './SocialLogin';
 
 const ModalBackground = styled.div`
   position: fixed;
@@ -113,18 +113,6 @@ const Divider = styled.div`
   }
 `;
 
-const GoogleButton = styled(Button)`
-  background-color: white;
-  color: #0056b3;
-  border: 2px solid #0056b3;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  &:hover {
-    background-color: #f0f0f0;
-  }
-`;
-
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -200,18 +188,37 @@ const BackButton = styled(Button)`
   border: 2px solid #0056b3;
 `;
 
+const SuccessMessage = styled.div`
+  text-align: center;
+  margin: 20px 0;
+  
+  h3 {
+    color: #28a745;
+    margin-bottom: 10px;
+  }
+  
+  p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+`;
+
 const Register = ({ isOpen, onClose }) => {
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     email: '',
     username: '',
     password1: '',
     password2: '',
     organization: '',
     role: 'user'
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
   const [step, setStep] = useState(1);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -240,40 +247,24 @@ const Register = ({ isOpen, onClose }) => {
     setIsLoading(true);
     try {
       await registerUser(formData);
-      toast.success('Registration successful! Please check your email to activate your account.');
+      setRegistrationSuccess(true);
+      setFormData(initialFormState); // Clear the form after successful registration
       setTimeout(() => {
         setIsLoading(false);
         if (onClose) onClose();
-        setStep(1);
       }, 1000);
     } catch (error) {
       console.error('Registration failed:', error);
-      toast.error('Registration failed. Please try again.');
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleRegister = async (credentialResponse) => {
-    setIsLoading(true);
-    try {
-      const response = await registerWithGoogle(credentialResponse.credential);
-      toast.success('Google registration successful!');
-      setTimeout(() => {
-        setIsLoading(false);
-        if (onClose) onClose();
-        navigate('/dashboard', { state: { user: response.data } });
-      }, 1000);
-    } catch (error) {
-      console.error('Google registration failed:', error);
-      toast.error('Google registration failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
       setIsLoading(false);
     }
   };
 
   const handleLoginClick = (e) => {
     e.preventDefault();
-    setIsLoginOpen(true);
-    setStep(1);
+    navigate('/login');
+    if (onClose) onClose();
   };
 
   const handleCloseLogin = () => {
@@ -285,58 +276,64 @@ const Register = ({ isOpen, onClose }) => {
       {!isLoginOpen && (
         <Container>
           <FormContainer>
-            {step === 1 && (
-              <>
-                <Form onSubmit={handleContinue}>
-                  <Input 
-                    type="email" 
-                    name="email"
-                    placeholder="Email" 
-                    value={formData.email} 
-                    onChange={handleChange} 
-                    required 
-                  />
-                  <Input 
-                    type="text" 
-                    name="username"
-                    placeholder="Username" 
-                    value={formData.username} 
-                    onChange={handleChange} 
-                    required 
-                  />
-                  <Input 
-                    type="password" 
-                    name="password1"
-                    placeholder="Create a password" 
-                    value={formData.password1} 
-                    onChange={handleChange} 
-                    required 
-                  />
-                  <Input 
-                    type="password" 
-                    name="password2"
-                    placeholder="Confirm password" 
-                    value={formData.password2} 
-                    onChange={handleChange} 
-                    required 
-                  />
-                  <Button type="submit">Continue</Button>
-                </Form>
-                <Divider><span>OR</span></Divider>
-                <GoogleLogin
-                  onSuccess={handleGoogleRegister}
-                  onError={() => toast.error('Google Registration Failed')}
-                />
-                <Text>
-                  Have an account? <Link onClick={handleLoginClick}>Log in</Link>
-                </Text>
-              </>
+            {registrationSuccess ? (
+              <SuccessMessage>
+                <h3>Registration Successful!</h3>
+                <p>Thank you for registering. We've sent an activation link to your email address.</p>
+                <p>Please check your inbox and click the link to activate your account.</p>
+                <Button onClick={handleLoginClick}>Go to Login</Button>
+              </SuccessMessage>
+            ) : (
+              step === 1 && (
+                <>
+                  <Form onSubmit={handleContinue}>
+                    <Input 
+                      type="email" 
+                      name="email"
+                      placeholder="Email" 
+                      value={formData.email} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                    <Input 
+                      type="text" 
+                      name="username"
+                      placeholder="Username" 
+                      value={formData.username} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                    <Input 
+                      type="password" 
+                      name="password1"
+                      placeholder="Create a password" 
+                      value={formData.password1} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                    <Input 
+                      type="password" 
+                      name="password2"
+                      placeholder="Confirm password" 
+                      value={formData.password2} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                    <Button type="submit">Continue</Button>
+                  </Form>
+                  <Divider><span>OR</span></Divider>
+                  <SocialLogin />
+                  <Text>
+                    Have an account? <Link onClick={handleLoginClick}>Log in</Link>
+                  </Text>
+                </>
+              )
             )}
           </FormContainer>
         </Container>
       )}
 
-      {step === 2 && (
+      {step === 2 && !registrationSuccess && (
         <StepTwoModal>
           <StepTwoContainer>
             <Form onSubmit={handleSubmit}>
