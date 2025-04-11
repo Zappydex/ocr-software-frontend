@@ -59,7 +59,7 @@ const ActionButton = styled.button`
   }
 `;
 
-const FilesList = styled.div`
+const FilesListContainer = styled.div`
   max-height: 600px;
   overflow-y: auto;
 `;
@@ -329,7 +329,7 @@ const FilesList = ({
         </NoFilesMessage>
       ) : (
         <>
-          <FilesList>
+          <FilesListContainer>
             <FilesTable>
               <TableHeader>
                 <TableHeaderRow>
@@ -393,7 +393,7 @@ const FilesList = ({
                 ))}
               </TableBody>
             </FilesTable>
-          </FilesList>
+          </FilesListContainer>
           
           <PaginationContainer>
             <Pagination 
