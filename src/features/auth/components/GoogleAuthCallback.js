@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { loginWithGoogle, registerWithGoogle } from '../../../services/auth/api';
+import { loginWithGoogle } from '../../../services/auth/api';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
@@ -85,18 +85,22 @@ const GoogleAuthCallback = () => {
   useEffect(() => {
     const processGoogleAuth = async () => {
       try {
-        // Extract ID token from URL or state
-        const params = new URLSearchParams(location.search);
-        const idToken = params.get('id_token') || location.state?.idToken;
+        // Extract ID token from URL query parameters
+        const params = new URLSearchParams(window.location.search);
+        const idToken = params.get('id_token');
+        
+        console.log("ID Token received:", idToken ? "Present" : "Not found");
         
         if (!idToken) {
-          setError('No authentication token found');
+          setError('No authentication token found in the URL. Please try again.');
           setLoading(false);
           return;
         }
         
         // Process the token with backend
+        console.log("Sending token to backend...");
         const response = await loginWithGoogle(idToken);
+        console.log("Backend response:", response);
         
         // Handle different response scenarios
         if (response.needs_additional_info) {
@@ -146,8 +150,9 @@ const GoogleAuthCallback = () => {
         }
       } catch (error) {
         console.error('Google auth error:', error);
-        setError(error.response?.data?.error || error.message || 'Authentication failed');
-        toast.error(error.response?.data?.error || error.message || 'Authentication failed');
+        const errorMessage = error.response?.data?.error || error.message || 'Authentication failed';
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setLoading(false);
       }
