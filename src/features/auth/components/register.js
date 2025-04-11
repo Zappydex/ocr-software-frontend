@@ -135,7 +135,7 @@ const LoadingOverlay = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1001;
+  z-index: 1003;
 `;
 
 const SlidingSquares = styled.div`
