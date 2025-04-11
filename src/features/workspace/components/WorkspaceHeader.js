@@ -3,7 +3,7 @@ import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { WorkspaceContext } from '../../../context/WorkspaceContext';
-import { AuthContext } from '../../../context/AuthContext';
+import AuthContext from '../../../context/AuthContext';
 import GlobalSearch from '../../search_filter/components/GlobalSearch';
 import GlobalFilter from '../../search_filter/components/GlobalFilter';
 import ProfileMenu from '../../user/components/ProfileMenu';

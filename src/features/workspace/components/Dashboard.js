@@ -3,7 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { WorkspaceContext } from '../../../context/WorkspaceContext';
-import { AuthContext } from '../../../context/AuthContext';
+import AuthContext from '../../../context/AuthContext';
 import DashboardHeader from './DashboardHeader';
 import FileUpload from '../../project/components/FileUpload';
 import ProcessingProgress from '../../project/components/ProcessingProgress';

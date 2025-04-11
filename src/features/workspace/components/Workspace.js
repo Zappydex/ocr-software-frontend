@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { AuthContext } from '../../../context/AuthContext';
+import AuthContext from '../../../context/AuthContext';
 import { WorkspaceContext } from '../../../context/WorkspaceContext';
 import WorkspaceHeader from './WorkspaceHeader';
 import WorkspaceSidebar from './WorkspaceSidebar';
