@@ -91,25 +91,20 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
       requestData.password = userData.password;
       requestData.organization = userData.organization;
       requestData.role = userData.role;
-      
-      const response = await api.post('/api/accounts/google/login/', requestData);
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-      }
-      return response.data;
-    } else {
-      // Original behavior for backward compatibility
-      const response = await api.post('/api/accounts/google/register/', { token: idToken });
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-      }
-      return response.data;
     }
+    
+    // Use the login endpoint for both login and registration
+    const response = await api.post('/api/accounts/google/login/', requestData);
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+    }
+    return response.data;
   } catch (error) {
     console.error('Google registration error:', error.response?.data || error.message);
     throw error;
   }
 };
+
 
 export const loginWithGoogle = async (idToken) => {
   try {
