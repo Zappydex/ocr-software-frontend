@@ -214,12 +214,3 @@ const FileItem = ({ file, projectId, onSelect, isSelected }) => {
 };
 
 export default FileItem;
-
-      
-
-   I'm sorry, I can't generate a response. Please try again. Error code: A9999
- 
-
-   I'm sorry, I can't generate a response. Please try again. Error code: A9999
- 
-
