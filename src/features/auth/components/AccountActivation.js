@@ -134,13 +134,13 @@ const AccountActivation = () => {
   const [email, setEmail] = useState('');
   const [resendStatus, setResendStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { uidb64, token } = useParams();
+  const { uidb64, token, user_id } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
     const checkToken = async () => {
       try {
-        const response = await checkActivationToken(uidb64, token);
+        const response = await checkActivationToken(uidb64, token, user_id);
         setIsValidToken(true);
         setActivationStatus({ success: true, message: response.message });
         if (response.message === 'Account is already active') {
@@ -156,13 +156,13 @@ const AccountActivation = () => {
       }
     };
     checkToken();
-  }, [uidb64, token, navigate]);
+  }, [uidb64, token, user_id, navigate]);
 
   const handleActivation = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await confirmAccountActivation(uidb64, token);
+      const response = await confirmAccountActivation(uidb64, token, user_id);
       setActivationStatus({ success: true, message: response.message });
       toast.success('Your account has been successfully activated. Redirecting to login...');
       setTimeout(() => {

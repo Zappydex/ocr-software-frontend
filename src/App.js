@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import GoogleAuthCallback from './features/auth/components/GoogleAuthCallback';
 
 // Context
 import { AuthProvider } from './context/AuthContext';
@@ -40,9 +41,12 @@ function App() {
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/activate/:uidb64/:token" element={<AccountActivation />} />
+            <Route path="/activate/:uidb64/:token/:user_id" element={<AccountActivation />} />
+            <Route path="/auth/google" element={<GoogleAuthCallback />} />
+
             <Route path="/password-reset" element={<PasswordReset />} />
             <Route path="/password-reset/:uidb64/:token" element={<ResetPasswordConfirm />} />
+            <Route path="/api/accounts/password-reset/:uidb64/:token" element={<ResetPasswordConfirm />} />
             <Route path="/logout" element={<Logout />} />
             
             {/* Protected Routes */}

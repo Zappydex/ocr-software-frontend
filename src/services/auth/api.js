@@ -39,9 +39,9 @@ export const logoutUser = async () => {
 export const logout = logoutUser;
 
 // Account Activation
-export const checkActivationToken = async (uidb64, token) => {
+export const checkActivationToken = async (uidb64, token, user_id) => {
   try {
-    const response = await api.get(`/api/accounts/activate/${uidb64}/${token}/`);
+    const response = await api.get(`/api/accounts/activate/${uidb64}/${token}/${user_id}/`);
     return response.data;
   } catch (error) {
     console.error('Activation token check error:', error.response?.data || error.message);
@@ -49,9 +49,9 @@ export const checkActivationToken = async (uidb64, token) => {
   }
 };
 
-export const confirmAccountActivation = async (uidb64, token) => {
+export const confirmAccountActivation = async (uidb64, token, user_id) => {
   try {
-    const response = await api.post(`/api/accounts/activate/${uidb64}/${token}/`);
+    const response = await api.post(`/api/accounts/activate/${uidb64}/${token}/${user_id}/`);
     return response.data;
   } catch (error) {
     console.error('Account activation error:', error.response?.data || error.message);
@@ -80,13 +80,31 @@ export const getGoogleAuthUrl = async () => {
   }
 };
 
-export const registerWithGoogle = async (idToken) => {
+export const registerWithGoogle = async (idToken, userData = {}) => {
   try {
-    const response = await api.post('/api/accounts/google/register/', { token: idToken });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    const requestData = { token: idToken };
+    
+    // Add registration data if provided
+    if (userData && Object.keys(userData).length > 0) {
+      requestData.completing_registration = true;
+      requestData.username = userData.username;
+      requestData.password = userData.password;
+      requestData.organization = userData.organization;
+      requestData.role = userData.role;
+      
+      const response = await api.post('/api/accounts/google/login/', requestData);
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
+    } else {
+      // Original behavior for backward compatibility
+      const response = await api.post('/api/accounts/google/register/', { token: idToken });
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
     }
-    return response.data;
   } catch (error) {
     console.error('Google registration error:', error.response?.data || error.message);
     throw error;
