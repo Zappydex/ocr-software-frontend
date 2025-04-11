@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
-import { resetPassword } from '../../../services/auth/api';
+import { resetPassword, checkPasswordResetToken } from '../../../services/auth/api';
 
 const Container = styled.div`
   display: flex;
@@ -139,16 +139,19 @@ const PasswordResetConfirm = () => {
   useEffect(() => {
     const verifyToken = async () => {
       try {
-        // We'll just check if the token and uidb64 are present
         if (token && uidb64) {
+          // Actually verify the token with the backend
+          const response = await checkPasswordResetToken(uidb64, token);
           setIsTokenValid(true);
+          setMessage(response.message || 'Token is valid. You can now reset your password.');
+          setIsError(false);
         } else {
           setIsError(true);
           setMessage('Invalid password reset link');
         }
       } catch (error) {
         setIsError(true);
-        setMessage('Invalid or expired link');
+        setMessage(error.response?.data?.error || 'Invalid or expired link');
       } finally {
         setIsLoading(false);
       }
@@ -175,9 +178,12 @@ const PasswordResetConfirm = () => {
     setIsError(false);
 
     try {
-      const response = await resetPassword(uidb64, token, { 
-        password, 
-        password_confirm: confirmPassword 
+      // Correct implementation of resetPassword call
+      const response = await resetPassword({
+        uidb64,
+        token,
+        password,
+        password_confirm: confirmPassword
       });
       
       setMessage(response.message || 'Password has been reset successfully');
