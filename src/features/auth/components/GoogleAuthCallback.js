@@ -85,11 +85,24 @@ const GoogleAuthCallback = () => {
   useEffect(() => {
     const processGoogleAuth = async () => {
       try {
-        // Extract ID token from URL query parameters
-        const params = new URLSearchParams(window.location.search);
-        const idToken = params.get('id_token');
+        // Check if we're on the correct path
+        const pathname = window.location.pathname;
+        if (!(pathname === '/auth/google' || pathname.endsWith('/auth/google'))) {
+          console.error('Invalid callback URL:', pathname);
+          setError('Invalid callback URL');
+          setLoading(false);
+          return;
+        }
+
+        // Log full URL for debugging
+        console.log('Full URL:', window.location.href);
+        console.log('Search params:', window.location.search);
         
-        console.log("ID Token received:", idToken ? "Present" : "Not found");
+        // Extract ID token from URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const idToken = urlParams.get('id_token');
+        
+        console.log("ID Token from URL:", idToken ? `${idToken.substring(0, 10)}...` : "Not found");
         
         if (!idToken) {
           setError('No authentication token found in the URL. Please try again.');
@@ -102,6 +115,9 @@ const GoogleAuthCallback = () => {
         const response = await loginWithGoogle(idToken);
         console.log("Backend response:", response);
         
+        // Clear the token from URL for security
+        window.history.replaceState({}, document.title, '/auth/google');
+        
         // Handle different response scenarios
         if (response.needs_additional_info) {
           // Store data for registration form
@@ -111,6 +127,8 @@ const GoogleAuthCallback = () => {
             googleId: response.google_id,
             suggestedUsername: response.suggested_username
           }));
+          
+          toast.info('Please complete your registration with a username and password');
           
           // Navigate to registration completion page
           navigate('/complete-registration', { 
@@ -126,6 +144,8 @@ const GoogleAuthCallback = () => {
           sessionStorage.setItem('pendingAuthEmail', response.email);
           sessionStorage.setItem('pendingAuthType', 'google');
           
+          toast.success('OTP sent to your email');
+          
           // Navigate to OTP verification page
           navigate('/verify-otp', { 
             state: { 
@@ -134,8 +154,6 @@ const GoogleAuthCallback = () => {
               redirectPath: '/workspace'
             } 
           });
-          
-          toast.success('OTP sent to your email');
           
         } else if (response.token) {
           // Successfully authenticated with token
@@ -159,7 +177,7 @@ const GoogleAuthCallback = () => {
     };
     
     processGoogleAuth();
-  }, [location, navigate, login]);
+  }, []);  // Removed dependencies to ensure it only runs once
 
   if (loading) return (
     <Container>
