@@ -128,31 +128,25 @@ export const loginWithGoogle = async (idToken) => {
   try {
     console.log('loginWithGoogle called at:', new Date().toISOString());
     
-    // Create a unique key based on part of the token
-    const tokenHash = idToken.substring(0, 20);
-    const processingKey = `processing_google_token_${tokenHash}`;
+    // Simple debounce using a timestamp instead of a flag
+    const lastCallTime = sessionStorage.getItem('lastGoogleLoginCall');
+    const currentTime = Date.now();
     
-    // Check if this token is already being processed
-    if (sessionStorage.getItem(processingKey)) {
-      console.log('Token already being processed, returning cached response');
+    if (lastCallTime && (currentTime - parseInt(lastCallTime)) < 2000) {
+      console.log('Preventing duplicate call - too soon after last call');
       return { message: 'Authentication in progress', requires_otp: true };
     }
     
-    // Mark this token as being processed
-    sessionStorage.setItem(processingKey, 'true');
+    // Update the timestamp
+    sessionStorage.setItem('lastGoogleLoginCall', currentTime.toString());
     
-    try {
-      const response = await api.post('/api/accounts/google/login/', { token: idToken });
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-      }
-      return response.data;
-    } finally {
-      // Remove processing flag after a delay
-      setTimeout(() => {
-        sessionStorage.removeItem(processingKey);
-      }, 5000);
+    const response = await api.post('/api/accounts/google/login/', { token: idToken });
+    console.log('Google login response received');
+    
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
     }
+    return response.data;
   } catch (error) {
     console.error('Google login error:', error.response?.data || error.message);
     throw error;
