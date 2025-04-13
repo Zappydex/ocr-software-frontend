@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { loginWithGoogle } from '../../../services/auth/api';
-import { useAuth } from '../../../context/AuthContext';
 import styled from 'styled-components';
 
 const SocialLoginContainer = styled.div`
@@ -58,7 +56,6 @@ const SlidingSquares = styled.div`
 const SocialLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setIsLoading(true);
@@ -75,6 +72,7 @@ const SocialLogin = () => {
     } catch (error) {
       console.error('Google login error:', error);
       toast.error('Google login failed. Please try again.');
+    } finally {
       setIsLoading(false);
     }
   };
