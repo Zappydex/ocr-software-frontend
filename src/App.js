@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import GoogleAuthCallback from './features/auth/components/GoogleAuthCallback';
+import CompleteRegistration from './features/auth/components/CompleteRegistration';
 import OTPVerification from './features/auth/components/OTPVerification';
 
 // Context
@@ -45,6 +46,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/activate/:uidb64/:token/:user_id" element={<AccountActivation />} />
             <Route path="/auth/google" element={<GoogleAuthCallback />} />
+            <Route path="/complete-registration" element={<CompleteRegistration />} />
             <Route path="/verify-otp" element={<OTPVerification />} />
             <Route path="/password-reset" element={<PasswordReset />} />
             <Route path="/password-reset/:uidb64/:token" element={<ResetPasswordConfirm />} />
