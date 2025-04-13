@@ -89,14 +89,16 @@ const GoogleAuthCallback = () => {
         console.log('Search params:', window.location.search);
         console.log('Location state:', location.state);
         
-        // Extract ID token from URL query parameters or location state
+        // Extract ID token from URL query parameters, location state, or sessionStorage
         const urlParams = new URLSearchParams(window.location.search);
         const idToken = urlParams.get('id_token');
         const stateToken = location.state?.idToken;
-        const finalToken = idToken || stateToken;
+        const sessionToken = sessionStorage.getItem('googleAuthToken');
+        const finalToken = idToken || stateToken || sessionToken;
         
         console.log("ID Token from URL:", idToken ? `${idToken.substring(0, 10)}...` : "Not found");
         console.log("ID Token from state:", stateToken ? `${stateToken.substring(0, 10)}...` : "Not found");
+        console.log("ID Token from session:", sessionToken ? `${sessionToken.substring(0, 10)}...` : "Not found");
         console.log("Final token used:", finalToken ? `${finalToken.substring(0, 10)}...` : "Not found");
         
         if (!finalToken) {
@@ -110,8 +112,9 @@ const GoogleAuthCallback = () => {
         const response = await loginWithGoogle(finalToken);
         console.log("Backend response:", response);
         
-        // Clear the token from URL for security
+        // Clear the token from URL for security and from sessionStorage
         window.history.replaceState({}, document.title, '/auth/google');
+        sessionStorage.removeItem('googleAuthToken');
         
         // Handle different response scenarios
         if (response.needs_additional_info) {
