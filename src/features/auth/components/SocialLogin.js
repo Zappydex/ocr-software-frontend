@@ -1,4 +1,3 @@
-// src/features/auth/components/SocialLogin.js
 import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
@@ -64,40 +63,54 @@ const SocialLogin = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     setIsLoading(true);
     try {
-      const response = await loginWithGoogle(credentialResponse.credential);
+      console.log("Google credential received:", credentialResponse.credential ? 
+        `${credentialResponse.credential.substring(0, 10)}...` : "None");
       
-      // Check if OTP is required
-      if (response.requires_otp || response.message?.includes('OTP sent')) {
-        // Store email for OTP verification
-        const email = response.email;
-        sessionStorage.setItem('pendingAuthEmail', email);
-        sessionStorage.setItem('pendingAuthType', 'google');
+      try {
+        const response = await loginWithGoogle(credentialResponse.credential);
         
-        // Navigate to OTP verification page
-        navigate('/verify-otp', { 
-          state: { 
-            email, 
-            authType: 'google',
-            redirectPath: '/workspace'
-          } 
-        });
+        // Check if OTP is required
+        if (response.requires_otp || response.message?.includes('OTP sent')) {
+          // Store email for OTP verification
+          const email = response.email;
+          sessionStorage.setItem('pendingAuthEmail', email);
+          sessionStorage.setItem('pendingAuthType', 'google');
+          
+          // Navigate to OTP verification page
+          navigate('/verify-otp', { 
+            state: { 
+              email, 
+              authType: 'google',
+              redirectPath: '/workspace'
+            } 
+          });
+          
+          toast.success('OTP sent to your email and phone (if available)');
+        } else if (response.needs_additional_info) {
+          // Navigate to Google auth callback for additional registration
+          navigate('/auth/google', { 
+            state: { 
+              idToken: credentialResponse.credential,
+              email: response.email,
+              suggestedUsername: response.suggested_username
+            } 
+          });
+        } else if (response.token) {
+          // Direct login if token is provided
+          localStorage.setItem('token', response.token);
+          login(response);
+          navigate('/workspace');
+          toast.success('Google login successful!');
+        }
+      } catch (apiError) {
+        console.error('API service error, trying direct navigation:', apiError);
         
-        toast.success('OTP sent to your email and phone (if available)');
-      } else if (response.needs_additional_info) {
-        // Navigate to Google auth callback for additional registration
+        // If API call fails, navigate to callback page with token in state
         navigate('/auth/google', { 
           state: { 
-            idToken: credentialResponse.credential,
-            email: response.email,
-            suggestedUsername: response.suggested_username
+            idToken: credentialResponse.credential
           } 
         });
-      } else if (response.token) {
-        // Direct login if token is provided
-        localStorage.setItem('token', response.token);
-        login(response);
-        navigate('/workspace');
-        toast.success('Google login successful!');
       }
     } catch (error) {
       console.error('Google login error:', error);
@@ -112,8 +125,8 @@ const SocialLogin = () => {
       <SocialLoginContainer>
         <GoogleLogin
           onSuccess={handleGoogleSuccess}
-          onError={() => {
-            console.error('Google Login Failed');
+          onError={(error) => {
+            console.error('Google Login Failed:', error);
             toast.error('Google Login Failed');
           }}
         />

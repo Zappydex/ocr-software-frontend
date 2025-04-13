@@ -5,7 +5,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
 import styled from 'styled-components';
 
-// Styled components for loading and error states
 const Container = styled.div`
   display: flex;
   justify-content: center;
@@ -85,86 +84,129 @@ const GoogleAuthCallback = () => {
   useEffect(() => {
     const processGoogleAuth = async () => {
       try {
-        // Check if we're on the correct path
-        const pathname = window.location.pathname;
-        if (!(pathname === '/auth/google' || pathname.endsWith('/auth/google'))) {
-          console.error('Invalid callback URL:', pathname);
-          setError('Invalid callback URL');
-          setLoading(false);
-          return;
-        }
-
         // Log full URL for debugging
         console.log('Full URL:', window.location.href);
         console.log('Search params:', window.location.search);
+        console.log('Location state:', location.state);
         
-        // Extract ID token from URL query parameters
+        // Extract ID token from URL query parameters or location state
         const urlParams = new URLSearchParams(window.location.search);
         const idToken = urlParams.get('id_token');
+        const stateToken = location.state?.idToken;
+        const finalToken = idToken || stateToken;
         
         console.log("ID Token from URL:", idToken ? `${idToken.substring(0, 10)}...` : "Not found");
+        console.log("ID Token from state:", stateToken ? `${stateToken.substring(0, 10)}...` : "Not found");
+        console.log("Final token used:", finalToken ? `${finalToken.substring(0, 10)}...` : "Not found");
         
-        if (!idToken) {
-          setError('No authentication token found in the URL. Please try again.');
+        if (!finalToken) {
+          setError('No authentication token found. Please try again.');
           setLoading(false);
           return;
         }
         
-        // Process the token with backend
+        // Process the token with backend using direct fetch to ensure it works
         console.log("Sending token to backend...");
-        const response = await loginWithGoogle(idToken);
-        console.log("Backend response:", response);
         
-        // Clear the token from URL for security
-        window.history.replaceState({}, document.title, '/auth/google');
-        
-        // Handle different response scenarios
-        if (response.needs_additional_info) {
-          // Store data for registration form
-          sessionStorage.setItem('googleAuthData', JSON.stringify({
-            idToken,
-            email: response.email,
-            googleId: response.google_id,
-            suggestedUsername: response.suggested_username
-          }));
+        try {
+          // First try with the API service
+          const response = await loginWithGoogle(finalToken);
+          console.log("Backend response:", response);
           
-          toast.info('Please complete your registration with a username and password');
+          // Clear the token from URL for security
+          window.history.replaceState({}, document.title, '/auth/google');
           
-          // Navigate to registration completion page
-          navigate('/complete-registration', { 
-            state: { 
+          // Handle different response scenarios
+          if (response.needs_additional_info) {
+            // Store data for registration form
+            sessionStorage.setItem('googleAuthData', JSON.stringify({
+              idToken: finalToken,
               email: response.email,
-              suggestedUsername: response.suggested_username,
-              googleAuth: true
-            }
+              googleId: response.google_id,
+              suggestedUsername: response.suggested_username
+            }));
+            
+            toast.info('Please complete your registration with a username and password');
+            
+            // Navigate to registration completion page
+            navigate('/complete-registration', { 
+              state: { 
+                email: response.email,
+                suggestedUsername: response.suggested_username,
+                googleAuth: true
+              }
+            });
+            
+          } else if (response.requires_otp || response.message?.includes('OTP sent')) {
+            // Store email for OTP verification
+            sessionStorage.setItem('pendingAuthEmail', response.email);
+            sessionStorage.setItem('pendingAuthType', 'google');
+            
+            toast.success('OTP sent to your email');
+            
+            // Navigate to OTP verification page
+            navigate('/verify-otp', { 
+              state: { 
+                email: response.email, 
+                authType: 'google',
+                redirectPath: '/workspace'
+              } 
+            });
+            
+          } else if (response.token) {
+            // Successfully authenticated with token
+            localStorage.setItem('token', response.token);
+            login(response);
+            toast.success('Successfully logged in!');
+            navigate('/workspace');
+          } else {
+            // Default success case
+            toast.success('Successfully authenticated!');
+            navigate('/workspace');
+          }
+        } catch (apiError) {
+          console.error('API service error, trying direct fetch:', apiError);
+          
+          // Fallback to direct fetch if the API service fails
+          const API_BASE_URL = window.location.origin;
+          const response = await fetch(`${API_BASE_URL}/api/accounts/google/login/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ token: finalToken })
           });
           
-        } else if (response.requires_otp || response.message?.includes('OTP sent')) {
-          // Store email for OTP verification
-          sessionStorage.setItem('pendingAuthEmail', response.email);
-          sessionStorage.setItem('pendingAuthType', 'google');
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           
-          toast.success('OTP sent to your email');
+          const data = await response.json();
+          console.log("Direct fetch response:", data);
           
-          // Navigate to OTP verification page
-          navigate('/verify-otp', { 
-            state: { 
-              email: response.email, 
-              authType: 'google',
-              redirectPath: '/workspace'
-            } 
-          });
-          
-        } else if (response.token) {
-          // Successfully authenticated with token
-          localStorage.setItem('token', response.token);
-          login(response);
-          toast.success('Successfully logged in!');
-          navigate('/workspace');
-        } else {
-          // Default success case
-          toast.success('Successfully authenticated!');
-          navigate('/workspace');
+          if (data.needs_additional_info) {
+            navigate('/complete-registration', { 
+              state: { 
+                email: data.email,
+                suggestedUsername: data.suggested_username,
+                googleAuth: true
+              }
+            });
+          } else if (data.requires_otp || data.message?.includes('OTP sent')) {
+            sessionStorage.setItem('pendingAuthEmail', data.email);
+            sessionStorage.setItem('pendingAuthType', 'google');
+            navigate('/verify-otp', { 
+              state: { 
+                email: data.email, 
+                authType: 'google',
+                redirectPath: '/workspace'
+              } 
+            });
+          } else if (data.token) {
+            localStorage.setItem('token', data.token);
+            login(data);
+            navigate('/workspace');
+          }
         }
       } catch (error) {
         console.error('Google auth error:', error);
@@ -177,7 +219,7 @@ const GoogleAuthCallback = () => {
     };
     
     processGoogleAuth();
-  }, []);  // Removed dependencies to ensure it only runs once
+  }, [location, navigate, login]);
 
   if (loading) return (
     <Container>
