@@ -84,6 +84,16 @@ export const getGoogleAuthUrl = async () => {
 
 export const registerWithGoogle = async (idToken, userData = {}) => {
   try {
+    const tokenHash = idToken.substring(0, 20);
+    const processingKey = `processing_google_token_${tokenHash}`;
+    
+    if (sessionStorage.getItem(processingKey)) {
+      console.log('Token already being processed for registration');
+      return { message: 'Authentication in progress', requires_otp: true };
+    }
+    
+    sessionStorage.setItem(processingKey, 'true');
+    
     const requestData = { token: idToken };
     
     // Add registration data if provided
@@ -95,12 +105,19 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
       requestData.role = userData.role;
     }
     
-    // Use the login endpoint for both login and registration
-    const response = await api.post('/api/accounts/google/login/', requestData);
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    try {
+      // Use the login endpoint for both login and registration
+      const response = await api.post('/api/accounts/google/login/', requestData);
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
+    } finally {
+      // Remove processing flag after a delay
+      setTimeout(() => {
+        sessionStorage.removeItem(processingKey);
+      }, 5000);
     }
-    return response.data;
   } catch (error) {
     console.error('Google registration error:', error.response?.data || error.message);
     throw error;
@@ -109,11 +126,33 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
 
 export const loginWithGoogle = async (idToken) => {
   try {
-    const response = await api.post('/api/accounts/google/login/', { token: idToken });
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
+    console.log('loginWithGoogle called at:', new Date().toISOString());
+    
+    // Create a unique key based on part of the token
+    const tokenHash = idToken.substring(0, 20);
+    const processingKey = `processing_google_token_${tokenHash}`;
+    
+    // Check if this token is already being processed
+    if (sessionStorage.getItem(processingKey)) {
+      console.log('Token already being processed, returning cached response');
+      return { message: 'Authentication in progress', requires_otp: true };
     }
-    return response.data;
+    
+    // Mark this token as being processed
+    sessionStorage.setItem(processingKey, 'true');
+    
+    try {
+      const response = await api.post('/api/accounts/google/login/', { token: idToken });
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
+    } finally {
+      // Remove processing flag after a delay
+      setTimeout(() => {
+        sessionStorage.removeItem(processingKey);
+      }, 5000);
+    }
   } catch (error) {
     console.error('Google login error:', error.response?.data || error.message);
     throw error;
