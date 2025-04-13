@@ -103,9 +103,10 @@ const SocialLogin = () => {
           toast.success('Google login successful!');
         }
       } catch (apiError) {
-        console.error('API service error, trying direct navigation:', apiError);
+        console.error('API service error:', apiError);
         
         // If API call fails, navigate to callback page with token in state
+        // This lets the callback component handle the authentication
         navigate('/auth/google', { 
           state: { 
             idToken: credentialResponse.credential

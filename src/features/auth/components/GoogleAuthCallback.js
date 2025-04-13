@@ -105,108 +105,61 @@ const GoogleAuthCallback = () => {
           return;
         }
         
-        // Process the token with backend using direct fetch to ensure it works
+        // Process the token with backend using the API service
         console.log("Sending token to backend...");
+        const response = await loginWithGoogle(finalToken);
+        console.log("Backend response:", response);
         
-        try {
-          // First try with the API service
-          const response = await loginWithGoogle(finalToken);
-          console.log("Backend response:", response);
+        // Clear the token from URL for security
+        window.history.replaceState({}, document.title, '/auth/google');
+        
+        // Handle different response scenarios
+        if (response.needs_additional_info) {
+          // Store data for registration form
+          sessionStorage.setItem('googleAuthData', JSON.stringify({
+            idToken: finalToken,
+            email: response.email,
+            googleId: response.google_id,
+            suggestedUsername: response.suggested_username
+          }));
           
-          // Clear the token from URL for security
-          window.history.replaceState({}, document.title, '/auth/google');
+          toast.info('Please complete your registration with a username and password');
           
-          // Handle different response scenarios
-          if (response.needs_additional_info) {
-            // Store data for registration form
-            sessionStorage.setItem('googleAuthData', JSON.stringify({
-              idToken: finalToken,
+          // Navigate to registration completion page
+          navigate('/complete-registration', { 
+            state: { 
               email: response.email,
-              googleId: response.google_id,
-              suggestedUsername: response.suggested_username
-            }));
-            
-            toast.info('Please complete your registration with a username and password');
-            
-            // Navigate to registration completion page
-            navigate('/complete-registration', { 
-              state: { 
-                email: response.email,
-                suggestedUsername: response.suggested_username,
-                googleAuth: true
-              }
-            });
-            
-          } else if (response.requires_otp || response.message?.includes('OTP sent')) {
-            // Store email for OTP verification
-            sessionStorage.setItem('pendingAuthEmail', response.email);
-            sessionStorage.setItem('pendingAuthType', 'google');
-            
-            toast.success('OTP sent to your email');
-            
-            // Navigate to OTP verification page
-            navigate('/verify-otp', { 
-              state: { 
-                email: response.email, 
-                authType: 'google',
-                redirectPath: '/workspace'
-              } 
-            });
-            
-          } else if (response.token) {
-            // Successfully authenticated with token
-            localStorage.setItem('token', response.token);
-            login(response);
-            toast.success('Successfully logged in!');
-            navigate('/workspace');
-          } else {
-            // Default success case
-            toast.success('Successfully authenticated!');
-            navigate('/workspace');
-          }
-        } catch (apiError) {
-          console.error('API service error, trying direct fetch:', apiError);
-          
-          // Fallback to direct fetch if the API service fails
-          const API_BASE_URL = window.location.origin;
-          const response = await fetch(`${API_BASE_URL}/api/accounts/google/login/`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ token: finalToken })
+              suggestedUsername: response.suggested_username,
+              googleAuth: true
+            }
           });
           
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
+        } else if (response.requires_otp || response.message?.includes('OTP sent')) {
+          // Store email for OTP verification
+          sessionStorage.setItem('pendingAuthEmail', response.email);
+          sessionStorage.setItem('pendingAuthType', 'google');
           
-          const data = await response.json();
-          console.log("Direct fetch response:", data);
+          toast.success('OTP sent to your email');
           
-          if (data.needs_additional_info) {
-            navigate('/complete-registration', { 
-              state: { 
-                email: data.email,
-                suggestedUsername: data.suggested_username,
-                googleAuth: true
-              }
-            });
-          } else if (data.requires_otp || data.message?.includes('OTP sent')) {
-            sessionStorage.setItem('pendingAuthEmail', data.email);
-            sessionStorage.setItem('pendingAuthType', 'google');
-            navigate('/verify-otp', { 
-              state: { 
-                email: data.email, 
-                authType: 'google',
-                redirectPath: '/workspace'
-              } 
-            });
-          } else if (data.token) {
-            localStorage.setItem('token', data.token);
-            login(data);
-            navigate('/workspace');
-          }
+          // Navigate to OTP verification page
+          navigate('/verify-otp', { 
+            state: { 
+              email: response.email, 
+              authType: 'google',
+              redirectPath: '/workspace'
+            } 
+          });
+          
+        } else if (response.token) {
+          // Successfully authenticated with token
+          localStorage.setItem('token', response.token);
+          login(response);
+          toast.success('Successfully logged in!');
+          navigate('/workspace');
+        } else {
+          // Default success case
+          toast.success('Successfully authenticated!');
+          navigate('/workspace');
         }
       } catch (error) {
         console.error('Google auth error:', error);
