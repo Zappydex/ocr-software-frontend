@@ -21,6 +21,9 @@ import Logout from './features/auth/components/logout';
 import Home from './features/home/components/Home';
 import Workspace from './features/workspace/components/Workspace';
 
+// Debug Component
+import DebugScreen from './components/DebugScreen';
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -70,6 +73,9 @@ function App() {
             {/* Catch-all route */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          
+          {/* Debug Screen - will capture all errors across the app */}
+          <DebugScreen />
         </Router>
         <ToastContainer position="top-right" autoClose={5000} />
       </AuthProvider>
