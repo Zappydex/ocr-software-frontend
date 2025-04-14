@@ -232,38 +232,50 @@ const CompleteRegistration = () => {
   };
   
   const handleFinalSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
+  
+  try {
+    const googleData = location.state || JSON.parse(sessionStorage.getItem('googleAuthData') || '{}');
     
-    try {
-      const googleData = location.state || JSON.parse(sessionStorage.getItem('googleAuthData') || '{}');
-      const response = await registerWithGoogle(googleData.idToken, formData);
+    // Clear the googleAuthToken from sessionStorage to prevent duplicate processing
+    sessionStorage.removeItem('googleAuthToken');
+    
+    const response = await registerWithGoogle(googleData.idToken, formData);
+    
+    if (response.requires_otp || response.message?.includes('OTP sent')) {
+      sessionStorage.setItem('pendingAuthEmail', response.email);
+      sessionStorage.setItem('pendingAuthType', 'google');
       
-      if (response.requires_otp || response.message?.includes('OTP sent')) {
-        sessionStorage.setItem('pendingAuthEmail', response.email);
-        sessionStorage.setItem('pendingAuthType', 'google');
-        
-        toast.success('OTP sent to your email');
-        
-        navigate('/verify-otp', { 
-          state: { 
-            email: response.email, 
-            authType: 'google',
-            redirectPath: '/workspace'
-          } 
-        });
-      } else if (response.token) {
-        localStorage.setItem('token', response.token);
-        login(response);
-        toast.success('Registration completed successfully!');
-        navigate('/workspace');
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.error || 'Registration failed');
-    } finally {
-      setIsLoading(false);
+      // Clear any remaining Google auth data
+      sessionStorage.removeItem('googleAuthData');
+      
+      toast.success('OTP sent to your email');
+      
+      navigate('/verify-otp', { 
+        state: { 
+          email: response.email, 
+          authType: 'google',
+          redirectPath: '/workspace'
+        } 
+      });
+    } else if (response.token) {
+      localStorage.setItem('token', response.token);
+      
+      // Clear any remaining Google auth data
+      sessionStorage.removeItem('googleAuthData');
+      
+      login(response);
+      toast.success('Registration completed successfully!');
+      navigate('/workspace');
     }
-  };
+  } catch (error) {
+    toast.error(error.response?.data?.error || 'Registration failed');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   
   return (
     <Container>
