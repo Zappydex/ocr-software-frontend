@@ -138,11 +138,30 @@ const AccountActivation = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("AccountActivation component mounted");
+    console.log("Current URL:", window.location.href);
+    console.log("Params:", { uidb64, token, user_id });
+    
+    // Add a fallback UI in case params are missing
+    if (!uidb64 || !token || !user_id) {
+      console.error("Missing URL parameters");
+      setActivationStatus({ 
+        success: false, 
+        message: 'Invalid activation link. Missing parameters.' 
+      });
+      setIsLoading(false);
+      return;
+    }
+
     const checkToken = async () => {
       try {
+        console.log("Making API call to check token");
         const response = await checkActivationToken(uidb64, token, user_id);
+        console.log("API response:", response);
+        
         setIsValidToken(true);
         setActivationStatus({ success: true, message: response.message });
+        
         if (response.message === 'Account is already active') {
           toast.info('Your account is already active. Redirecting to login...');
           setTimeout(() => {
@@ -150,11 +169,18 @@ const AccountActivation = () => {
           }, 2000);
         }
       } catch (error) {
-        setActivationStatus({ success: false, message: error.response?.data?.error || 'Invalid activation link' });
+        console.error("API error:", error);
+        console.error("Response data:", error.response?.data);
+        
+        setActivationStatus({ 
+          success: false, 
+          message: error.response?.data?.error || 'Invalid activation link' 
+        });
       } finally {
         setIsLoading(false);
       }
     };
+    
     checkToken();
   }, [uidb64, token, user_id, navigate]);
 
@@ -162,14 +188,21 @@ const AccountActivation = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      console.log("Confirming activation with params:", { uidb64, token, user_id });
       const response = await confirmAccountActivation(uidb64, token, user_id);
+      console.log("Activation response:", response);
+      
       setActivationStatus({ success: true, message: response.message });
       toast.success('Your account has been successfully activated. Redirecting to login...');
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } catch (error) {
-      setActivationStatus({ success: false, message: error.response?.data?.error || 'Activation failed' });
+      console.error("Activation error:", error);
+      setActivationStatus({ 
+        success: false, 
+        message: error.response?.data?.error || 'Activation failed' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -179,8 +212,12 @@ const AccountActivation = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      console.log("Resending activation email to:", email);
       const response = await resendActivationEmail({ email });
+      console.log("Resend response:", response);
+      
       setResendStatus({ success: true, message: response.message });
+      
       if (response.message === 'Account is already active') {
         toast.info('Your account is already active. Redirecting to login...');
         setTimeout(() => {
@@ -190,11 +227,28 @@ const AccountActivation = () => {
         toast.success('Activation email has been resent. Please check your inbox.');
       }
     } catch (error) {
-      setResendStatus({ success: false, message: error.response?.data?.error || 'Failed to resend activation email' });
+      console.error("Resend error:", error);
+      setResendStatus({ 
+        success: false, 
+        message: error.response?.data?.error || 'Failed to resend activation email' 
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Render a basic UI even before loading completes
+  if (!uidb64 || !token || !user_id) {
+    return (
+      <ActivationContainer>
+        <ActivationContent>
+          <Title>Account Activation</Title>
+          <Message success={false}>Invalid activation link. Missing parameters.</Message>
+          <Link onClick={() => navigate('/login')}>Back to Login</Link>
+        </ActivationContent>
+      </ActivationContainer>
+    );
+  }
 
   if (isLoading && activationStatus === null) {
     return (

@@ -47,7 +47,9 @@ function App() {
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/activate/:uidb64/:token/:user_id" element={<AccountActivation />} />
             <Route path="/activate/:uidb64/:token/:user_id/" element={<AccountActivation />} />
+            
             <Route path="/auth/google" element={<GoogleAuthCallback />} />
             <Route path="/complete-registration" element={<CompleteRegistration />} />
             <Route path="/verify-otp" element={<OTPVerification />} />

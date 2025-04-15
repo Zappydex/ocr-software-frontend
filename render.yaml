@@ -12,7 +12,7 @@ services:
         destination: /index.html
     envVars:
       - key: REACT_APP_API_URL
-        value: "https://ocr-software-62gw.onrender.com"
+        value: "https://ocr-software-ecn9.onrender.com"
       - key: REACT_APP_ENV
         value: "production"
       - key: NODE_VERSION
