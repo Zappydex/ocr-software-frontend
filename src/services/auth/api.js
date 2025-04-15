@@ -1,6 +1,5 @@
 import api from '../apiConfig';
 
-// Authentication services
 export const registerUser = async (userData) => {
   try {
     const response = await api.post('/api/accounts/register/', userData);
@@ -35,10 +34,8 @@ export const logoutUser = async () => {
   }
 };
 
-// For backward compatibility with existing imports
 export const logout = logoutUser;
 
-// Account Activation
 export const checkActivationToken = async (uidb64, token, user_id) => {
   try {
     const response = await api.get(`/activate/${uidb64}/${token}/${user_id}/`);
@@ -60,7 +57,6 @@ export const confirmAccountActivation = async (uidb64, token, user_id) => {
   }
 };
 
-
 export const resendActivationEmail = async (email) => {
   try {
     const response = await api.post('/api/accounts/resend-activation/', { email });
@@ -71,7 +67,6 @@ export const resendActivationEmail = async (email) => {
   }
 };
 
-// Google Authentication
 export const getGoogleAuthUrl = async () => {
   try {
     const response = await api.get('/api/accounts/google/login/');
@@ -84,6 +79,11 @@ export const getGoogleAuthUrl = async () => {
 
 export const registerWithGoogle = async (idToken, userData = {}) => {
   try {
+    if (!idToken) {
+      console.error('Missing Google ID token');
+      throw new Error('Missing Google authentication token');
+    }
+    
     const tokenHash = idToken.substring(0, 20);
     const processingKey = `processing_google_token_${tokenHash}`;
     
@@ -96,7 +96,6 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
     
     const requestData = { token: idToken };
     
-    // Add registration data if provided
     if (userData && Object.keys(userData).length > 0) {
       requestData.completing_registration = true;
       requestData.username = userData.username;
@@ -106,14 +105,12 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
     }
     
     try {
-      // Use the login endpoint for both login and registration
       const response = await api.post('/api/accounts/google/login/', requestData);
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } finally {
-      // Remove processing flag after a delay
       setTimeout(() => {
         sessionStorage.removeItem(processingKey);
       }, 5000);
@@ -126,9 +123,13 @@ export const registerWithGoogle = async (idToken, userData = {}) => {
 
 export const loginWithGoogle = async (idToken) => {
   try {
+    if (!idToken) {
+      console.error('Missing Google ID token');
+      throw new Error('Missing Google authentication token');
+    }
+    
     console.log('loginWithGoogle called at:', new Date().toISOString());
     
-    // Simple debounce using a timestamp instead of a flag
     const lastCallTime = sessionStorage.getItem('lastGoogleLoginCall');
     const currentTime = Date.now();
     
@@ -137,7 +138,6 @@ export const loginWithGoogle = async (idToken) => {
       return { message: 'Authentication in progress', requires_otp: true };
     }
     
-    // Update the timestamp
     sessionStorage.setItem('lastGoogleLoginCall', currentTime.toString());
     
     const response = await api.post('/api/accounts/google/login/', { token: idToken });
@@ -163,7 +163,6 @@ export const checkGoogleAuthStatus = async () => {
   }
 };
 
-// Password Reset
 export const requestPasswordReset = async (email) => {
   try {
     const response = await api.post('/api/accounts/request-reset-email/', { email });
@@ -194,7 +193,6 @@ export const resetPassword = async (passwordData) => {
   }
 };
 
-// OTP Verification
 export const verifyOTP = async (otpData) => {
   try {
     const response = await api.post('/api/accounts/verify-otp/', otpData);
@@ -218,7 +216,6 @@ export const resendOTP = async (email) => {
   }
 };
 
-// User Profile
 export const getUserProfile = async () => {
   try {
     const response = await api.get('/api/accounts/profile/');

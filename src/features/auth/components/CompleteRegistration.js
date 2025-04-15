@@ -1,4 +1,3 @@
-// src/features/auth/components/CompleteRegistration.js
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -190,8 +189,12 @@ const CompleteRegistration = () => {
   });
   
   useEffect(() => {
-    // Get data from location state or sessionStorage
-    const googleData = location.state || JSON.parse(sessionStorage.getItem('googleAuthData') || '{}');
+    let googleData;
+    try {
+      googleData = location.state || JSON.parse(sessionStorage.getItem('googleAuthData') || '{}');
+    } catch (error) {
+      googleData = {};
+    }
     
     if (googleData.suggestedUsername) {
       setFormData(prev => ({
@@ -200,7 +203,7 @@ const CompleteRegistration = () => {
       }));
     }
     
-    if (!googleData.email && !googleData.idToken) {
+    if (!googleData.email || !googleData.idToken) {
       toast.error('Missing registration data');
       navigate('/login');
     }
@@ -216,7 +219,6 @@ const CompleteRegistration = () => {
   const handleInitialSubmit = (e) => {
     e.preventDefault();
     
-    // Validate username and password
     if (!formData.username || !formData.password) {
       toast.error('Username and password are required');
       return;
@@ -227,55 +229,62 @@ const CompleteRegistration = () => {
       return;
     }
     
-    // Show modal for organization and role
     setShowModal(true);
   };
   
   const handleFinalSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  
-  try {
-    const googleData = location.state || JSON.parse(sessionStorage.getItem('googleAuthData') || '{}');
+    e.preventDefault();
+    setIsLoading(true);
     
-    // Clear the googleAuthToken from sessionStorage to prevent duplicate processing
-    sessionStorage.removeItem('googleAuthToken');
-    
-    const response = await registerWithGoogle(googleData.idToken, formData);
-    
-    if (response.requires_otp || response.message?.includes('OTP sent')) {
-      sessionStorage.setItem('pendingAuthEmail', response.email);
-      sessionStorage.setItem('pendingAuthType', 'google');
+    try {
+      let googleData;
+      try {
+        googleData = location.state || JSON.parse(sessionStorage.getItem('googleAuthData') || '{}');
+      } catch (error) {
+        googleData = {};
+      }
       
-      // Clear any remaining Google auth data
-      sessionStorage.removeItem('googleAuthData');
+      if (!googleData.idToken) {
+        toast.error('Authentication token missing or expired. Please try again.');
+        navigate('/login');
+        return;
+      }
       
-      toast.success('OTP sent to your email');
+      sessionStorage.removeItem('googleAuthToken');
       
-      navigate('/verify-otp', { 
-        state: { 
-          email: response.email, 
-          authType: 'google',
-          redirectPath: '/workspace'
-        } 
-      });
-    } else if (response.token) {
-      localStorage.setItem('token', response.token);
+      const response = await registerWithGoogle(googleData.idToken, formData);
       
-      // Clear any remaining Google auth data
-      sessionStorage.removeItem('googleAuthData');
-      
-      login(response);
-      toast.success('Registration completed successfully!');
-      navigate('/workspace');
+      if (response.requires_otp || response.message?.includes('OTP sent')) {
+        sessionStorage.setItem('pendingAuthEmail', response.email);
+        sessionStorage.setItem('pendingAuthType', 'google');
+        
+        sessionStorage.removeItem('googleAuthData');
+        
+        toast.success('OTP sent to your email');
+        
+        navigate('/verify-otp', { 
+          state: { 
+            email: response.email, 
+            authType: 'google',
+            redirectPath: '/workspace'
+          } 
+        });
+      } else if (response.token) {
+        localStorage.setItem('token', response.token);
+        
+        sessionStorage.removeItem('googleAuthData');
+        
+        login(response);
+        toast.success('Registration completed successfully!');
+        navigate('/workspace');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error(error.response?.data?.error || error.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    toast.error(error.response?.data?.error || 'Registration failed');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
   
   return (
     <Container>
