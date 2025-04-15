@@ -38,7 +38,7 @@ export const logout = logoutUser;
 
 export const checkActivationToken = async (uidb64, token, user_id) => {
   try {
-    const response = await api.get(`/activate/${uidb64}/${token}/${user_id}/`);
+    const response = await api.get(`/api/accounts/activate/${uidb64}/${token}/${user_id}/`);
     console.log('Check token response:', response.data);
     return response.data;
   } catch (error) {
@@ -49,7 +49,7 @@ export const checkActivationToken = async (uidb64, token, user_id) => {
 
 export const confirmAccountActivation = async (uidb64, token, user_id) => {
   try {
-    const response = await api.post(`/activate/${uidb64}/${token}/${user_id}/`);
+    const response = await api.post(`/api/accounts/activate/${uidb64}/${token}/${user_id}/`);
     return response.data;
   } catch (error) {
     console.error('Account activation error:', error.response?.data || error.message);
