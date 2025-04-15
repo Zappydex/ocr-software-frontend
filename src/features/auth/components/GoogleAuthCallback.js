@@ -48,7 +48,6 @@ const SlidingSquares = styled.div`
   width: 50px;
   height: 50px;
   position: relative;
-  margin-bottom: 20px;
   
   .square {
     background-color: #0056b3;
@@ -176,7 +175,6 @@ const GoogleAuthCallback = () => {
           <div className="square"></div>
           <div className="square"></div>
         </SlidingSquares>
-        <p>Processing authentication...</p>
       </LoadingOverlay>
     </Container>
   );
@@ -192,11 +190,7 @@ const GoogleAuthCallback = () => {
     </Container>
   );
   
-  return (
-    <Container>
-      <p>Redirecting to workspace...</p>
-    </Container>
-  );
+  return null;
 };
 
 export default GoogleAuthCallback;

@@ -1,8 +1,7 @@
-// src/features/auth/components/login.js
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { GoogleLogin } from '@react-oauth/google';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { loginUser, loginWithGoogle } from '../../../services/auth/api';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -156,6 +155,26 @@ const Login = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('activated') === 'true') {
+      toast.success('Your account has been successfully activated! You can now log in.');
+    } else if (params.get('activated') === 'already') {
+      toast.info('Your account is already active. You can log in.');
+    } else if (params.get('error') === 'invalid_link') {
+      toast.error('Invalid activation link. Please request a new one.');
+    } else if (params.get('error') === 'expired_token') {
+      toast.error('Activation link has expired. Please request a new one.');
+    } else if (params.get('error') === 'invalid_token') {
+      toast.error('Invalid activation token. Please request a new one.');
+    } else if (params.get('error') === 'user_not_found') {
+      toast.error('User not found. Please register again.');
+    } else if (params.get('error') === 'activation_failed') {
+      toast.error('Account activation failed. Please try again or contact support.');
+    }
+  }, [location]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -172,13 +191,11 @@ const Login = ({ isOpen, onClose }) => {
       }
       const response = await loginUser({ email, password });
       
-      // Store email in sessionStorage for OTP component
       sessionStorage.setItem('pendingAuthEmail', email);
       sessionStorage.setItem('pendingAuthType', 'regular');
       
       setIsLoading(false);
       
-      // Navigate to OTP verification page
       navigate('/verify-otp', { 
         state: { 
           email, 
@@ -199,16 +216,13 @@ const Login = ({ isOpen, onClose }) => {
     try {
       const response = await loginWithGoogle(credentialResponse.credential);
       
-      // Check if OTP is required
       if (response.requires_otp || response.message?.includes('OTP sent')) {
-        // Store email for OTP verification
         const email = response.email;
         sessionStorage.setItem('pendingAuthEmail', email);
         sessionStorage.setItem('pendingAuthType', 'google');
         
         setIsLoading(false);
         
-        // Navigate to OTP verification page
         navigate('/verify-otp', { 
           state: { 
             email, 
@@ -219,7 +233,6 @@ const Login = ({ isOpen, onClose }) => {
         
         toast.success('OTP sent to your email and phone (if available)');
       } else if (response.token) {
-        // Direct login if token is provided
         localStorage.setItem('token', response.token);
         setTimeout(() => {
           setIsLoading(false);
@@ -229,7 +242,6 @@ const Login = ({ isOpen, onClose }) => {
         }, 1000);
         toast.success('Google login successful!');
       } else {
-        // Handle other cases (like needing additional registration info)
         toast.info('Additional verification required');
         navigate('/auth/google', { 
           state: { idToken: credentialResponse.credential } 
